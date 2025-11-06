@@ -32,6 +32,7 @@ import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.cobblemon.mod.common.pokemon.properties.AspectPropertyType;
 import com.cobblemon.mod.common.pokemon.properties.UnaspectPropertyType;
 import com.cobblemon.mod.common.util.MiscUtilsKt;
+import com.cobblemon.mod.common.util.PlayerExtensionsKt;
 import com.provismet.cobblemon.gimmick.GimmeThatGimmickMain;
 import com.provismet.cobblemon.gimmick.api.data.registry.EffectsData;
 import com.provismet.cobblemon.gimmick.api.data.registry.form.BattleForm;
@@ -132,20 +133,14 @@ public abstract class CobblemonEventHandler {
                         "mega_evolution_outside"
                 );
 
-                if (MegaHelper.megaEvolve(pokemon, false)) {
-                    List<String> prioritisedEffects = List.of(
-                        "mega_evolution_outside" + pokemon.showdownId(),
-                        "mega_evolution_outside"
-                    );
-
-                    for (String id : prioritisedEffects) {
-                        Optional<RegistryEntry.Reference<EffectsData>> effectsData = EffectsData.get(pokemonEntity.getRegistryManager(), GimmeThatGimmickMain.identifier(id));
-                        if (effectsData.isPresent()) {
-                            effectsData.get().value().run(pokemonEntity);
-                            break;
-                        }
+                for (String id : prioritisedEffects) {
+                    Optional<RegistryEntry.Reference<EffectsData>> effectsData = EffectsData.get(pokemonEntity.getRegistryManager(), GimmeThatGimmickMain.identifier(id));
+                    if (effectsData.isPresent()) {
+                        effectsData.get().value().run(pokemonEntity);
+                        break;
                     }
                 }
+
             } else {
                 player.sendMessage(Text.translatable("message.overlay.gimme-that-gimmick.no_stone").formatted(Formatting.RED), true);
                 return ActionResult.FAIL;
@@ -198,7 +193,7 @@ public abstract class CobblemonEventHandler {
         return Unit.INSTANCE;
     }
 
-    private static Unit battleStarted(BattleStartedPreEvent battleEvent) {
+    private static Unit battleStarted(BattleStartedEvent battleEvent) {
         for (BattleActor actor : battleEvent.getBattle().getActors()) {
             if (!(actor instanceof PlayerBattleActor)) continue;
             actor.getPokemonList().forEach(battlePokemon -> CobblemonEventHandler.resetBattleForms(battlePokemon.getEffectedPokemon()));
@@ -603,9 +598,9 @@ public abstract class CobblemonEventHandler {
         return Unit.INSTANCE;
     }
 
-    private static Unit pokemonSentOut(PokemonSentPostEvent event) {
+    private static Unit pokemonSentOut(PokemonSentEvent event) {
         if (Options.shouldApplyBasicTeraGlow() && event.getPokemon().getPersistentData().contains("is_tera")) {
-            GlowHandler.applyTeraGlow(event.getPokemonEntity());
+            GlowHandler.applyTeraGlow(event.getPokemon().getEntity());
         }
         return Unit.INSTANCE;
     }
