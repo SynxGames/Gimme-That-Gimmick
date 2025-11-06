@@ -4,6 +4,7 @@ import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.provismet.cobblemon.gimmick.api.data.component.FormToggle;
 import com.provismet.cobblemon.gimmick.api.data.registry.EffectsData;
 import com.provismet.cobblemon.gimmick.registry.GTGItemDataComponents;
+import com.provismet.cobblemon.gimmick.registry.GTGItems;
 import eu.pb4.polymer.resourcepack.api.PolymerModelData;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -17,7 +18,13 @@ public class DataDrivenToggleItem extends AbstractDataDrivenFormItem implements 
 
     @Override
     public boolean shouldApplySpecialForm (ItemStack stack, Pokemon pokemon) {
-        FormToggle toggle = stack.get(GTGItemDataComponents.FORM_TOGGLE);
+        // BEGIN FLOURISH CHECK
+        Item flourishItem = GTGItems.getFlourishItemType(stack);
+        ItemStack stackToCheck = (flourishItem != null) ? flourishItem.getDefaultStack() : stack;
+        FormToggle toggle = stackToCheck.get(GTGItemDataComponents.FORM_TOGGLE);
+//        FormToggle toggle = stack.get(GTGItemDataComponents.FORM_TOGGLE);
+        // END FLOURISH CHECK
+
         if (toggle != null) {
             return toggle.shouldApply().matches(pokemon);
         }
@@ -26,7 +33,13 @@ public class DataDrivenToggleItem extends AbstractDataDrivenFormItem implements 
 
     @Override
     public void applySpecialForm (ItemStack stack, ServerPlayerEntity player, Pokemon pokemon) {
-        FormToggle toggle = stack.get(GTGItemDataComponents.FORM_TOGGLE);
+        // BEGIN FLOURISH CHECK
+        Item flourishItem = GTGItems.getFlourishItemType(stack);
+        ItemStack stackToCheck = (flourishItem != null) ? flourishItem.getDefaultStack() : stack;
+        FormToggle toggle = stackToCheck.get(GTGItemDataComponents.FORM_TOGGLE);
+//        FormToggle toggle = stack.get(GTGItemDataComponents.FORM_TOGGLE);
+        // END FLOURISH CHECK
+
         if (toggle != null) {
             toggle.onApply().apply(pokemon);
 
@@ -38,7 +51,12 @@ public class DataDrivenToggleItem extends AbstractDataDrivenFormItem implements 
 
     @Override
     public void removeSpecialForm (ItemStack stack, ServerPlayerEntity player, Pokemon pokemon) {
-        FormToggle toggle = stack.get(GTGItemDataComponents.FORM_TOGGLE);
+        // BEGIN FLOURISH CHECK
+        Item flourishItem = GTGItems.getFlourishItemType(stack);
+        ItemStack stackToCheck = (flourishItem != null) ? flourishItem.getDefaultStack() : stack;
+        FormToggle toggle = stackToCheck.get(GTGItemDataComponents.FORM_TOGGLE);
+//        FormToggle toggle = stack.get(GTGItemDataComponents.FORM_TOGGLE);
+        // END FLOURISH CHECK
         if (toggle != null) {
             toggle.onRemove().apply(pokemon);
 
@@ -49,8 +67,13 @@ public class DataDrivenToggleItem extends AbstractDataDrivenFormItem implements 
     }
 
     @Override
-    public boolean canUseOnPokemon (@NotNull ItemStack stack, @NotNull Pokemon pokemon) {
-        FormToggle toggle = stack.get(GTGItemDataComponents.FORM_TOGGLE);
+    public boolean canUseOnPokemon (ItemStack stack, Pokemon pokemon) {
+        // BEGIN FLOURISH CHECK
+        Item flourishItem = GTGItems.getFlourishItemType(stack);
+        ItemStack stackToCheck = (flourishItem != null) ? flourishItem.getDefaultStack() : stack;
+        FormToggle toggle = stackToCheck.get(GTGItemDataComponents.FORM_TOGGLE);
+//        FormToggle toggle = stack.get(GTGItemDataComponents.FORM_TOGGLE);
+        // END FLOURISH CHECK
         if (toggle != null) {
             return toggle.validPokemon().matches(pokemon);
         }

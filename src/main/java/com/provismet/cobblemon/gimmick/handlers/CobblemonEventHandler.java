@@ -42,6 +42,7 @@ import com.provismet.cobblemon.gimmick.item.forms.GenericFormChangeHeldItem;
 import com.provismet.cobblemon.gimmick.item.zmove.TypedZCrystalItem;
 import com.provismet.cobblemon.gimmick.registry.GTGDynamicRegistries;
 import com.provismet.cobblemon.gimmick.registry.GTGDynamicRegistryKeys;
+import com.provismet.cobblemon.gimmick.registry.GTGItems;
 import com.provismet.cobblemon.gimmick.registry.GTGStatusEffects;
 import com.provismet.cobblemon.gimmick.util.GlowHandler;
 import com.provismet.cobblemon.gimmick.util.MegaHelper;
@@ -52,6 +53,7 @@ import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.entry.RegistryEntry;
@@ -73,7 +75,7 @@ import java.util.Optional;
 import java.util.stream.StreamSupport;
 
 public abstract class CobblemonEventHandler {
-    public static void register () {
+    public static void register() {
         CobblemonEvents.MEGA_EVOLUTION.subscribe(Priority.NORMAL, CobblemonEventHandler::megaEvolutionUsed);
         CobblemonEvents.TERASTALLIZATION.subscribe(Priority.NORMAL, CobblemonEventHandler::terrastallizationUsed);
         CobblemonEvents.ZPOWER_USED.subscribe(Priority.NORMAL, CobblemonEventHandler::zmoveUsed);
@@ -91,19 +93,44 @@ public abstract class CobblemonEventHandler {
         UseEntityCallback.EVENT.register(CobblemonEventHandler::megaEvolveOutside);
     }
 
-    private static ActionResult megaEvolveOutside (PlayerEntity player, World world, Hand hand, Entity entity, EntityHitResult entityHitResult) {
-        if (GimmickCheck.isUnenchantedKeyStone(player.getStackInHand(hand)) && entity instanceof PokemonEntity pokemonEntity && !player.isSneaking()) {
-            Pokemon pokemon = pokemonEntity.getPokemon();
-            if (pokemon.getPersistentData().contains("last_mega", NbtElement.LONG_TYPE) && Math.abs(world.getTime() - pokemon.getPersistentData().getLong("last_mega")) < 20) {
-                return ActionResult.FAIL;
+    private static ActionResult megaEvolveOutside(PlayerEntity player, World world, Hand hand, Entity entity, EntityHitResult entityHitResult) {
+        // BEGIN FLOURISH MIGRATION
+        ItemStack handItem = player.getStackInHand(hand);
+        Item flourishItem = GTGItems.getFlourishItemType(handItem);
+        boolean isUnenchantedKeyStone = (flourishItem == null)
+                ? GimmickCheck.isUnenchantedKeyStone(handItem)
+                : GimmickCheck.isFlourishUnenchantedKeyStone(flourishItem.getDefaultStack());
+
+        if (player.isSneaking() || !(entity instanceof PokemonEntity pokemonEntity) || !isUnenchantedKeyStone)
+//        if (player.isSneaking() || !(entity instanceof PokemonEntity pokemonEntity) || !GimmickCheck.isUnenchantedKeyStone(player.getStackInHand(hand)))
+            // END FLOURISH MIGRATION
+            return ActionResult.PASS;
+        if (pokemonEntity.getOwner() != player) {
+            player.sendMessage(Text.translatable("message.overlay.gimme-that-gimmick.mega_not_yours").formatted(Formatting.RED), true);
+            return ActionResult.FAIL;
+        }
+        if (pokemonEntity.isBattling() || (player instanceof ServerPlayerEntity serverPlayer && PlayerExtensionsKt.isInBattle(serverPlayer))) {
+            player.sendMessage(Text.translatable("message.overlay.gimme-that-gimmick.mega_in_battle").formatted(Formatting.RED), true);
+            return ActionResult.FAIL;
+        }
+
+        Pokemon pokemon = pokemonEntity.getPokemon();
+        if (pokemon.getPersistentData().contains("last_mega", NbtElement.LONG_TYPE) && Math.abs(world.getTime() - pokemon.getPersistentData().getLong("last_mega")) < 20) {
+            return ActionResult.FAIL;
+        }
+
+        player.swingHand(hand, true);
+        if (!MegaHelper.hasMegaAspect(pokemon)) {
+            if (!Options.shouldAllowMultipleOutOfCombatMegas() && MegaHelper.checkForMega((ServerPlayerEntity) player)) {
+                player.sendMessage(Text.translatable("message.overlay.gimme-that-gimmick.mega_exists").formatted(Formatting.RED), true);
+                return ActionResult.SUCCESS;
             }
 
-            player.swingHand(hand, true);
-            if (!MegaHelper.hasMegaAspect(pokemon)) {
-                if (!Options.shouldAllowMultipleOutOfCombatMegas() && MegaHelper.checkForMega((ServerPlayerEntity) player)) {
-                    player.sendMessage(Text.translatable("message.overlay.gimme-that-gimmick.mega_exists").formatted(Formatting.RED), true);
-                    return ActionResult.SUCCESS;
-                }
+            if (MegaHelper.megaEvolve(pokemon, false)) {
+                List<String> prioritisedEffects = List.of(
+                        "mega_evolution_outside" + pokemon.showdownId(),
+                        "mega_evolution_outside"
+                );
 
                 if (MegaHelper.megaEvolve(pokemon, false)) {
                     List<String> prioritisedEffects = List.of(
@@ -119,36 +146,36 @@ public abstract class CobblemonEventHandler {
                         }
                     }
                 }
-                else {
-                    player.sendMessage(Text.translatable("message.overlay.gimme-that-gimmick.no_stone").formatted(Formatting.RED), true);
-                    return ActionResult.FAIL;
-                }
+            } else {
+                player.sendMessage(Text.translatable("message.overlay.gimme-that-gimmick.no_stone").formatted(Formatting.RED), true);
+                return ActionResult.FAIL;
             }
-            else {
-                MegaHelper.megaDevolve(pokemon);
-            }
-            // This event triggers twice each time? Just adding a delay.
-            pokemon.getPersistentData().putLong("last_mega", world.getTime());
-            return ActionResult.SUCCESS;
+        } else {
+            MegaHelper.megaDevolve(pokemon);
         }
-        return ActionResult.PASS;
+        // This event triggers twice each time? Just adding a delay.
+        pokemon.getPersistentData().putLong("last_mega", world.getTime());
+        return ActionResult.SUCCESS;
     }
 
-    private static Unit zmoveUsed (ZMoveUsedEvent zMoveUsedEvent) {
+    private static Unit zmoveUsed(ZMoveUsedEvent zMoveUsedEvent) {
         PokemonEntity pokemonEntity = zMoveUsedEvent.getPokemon().getEntity();
         if (pokemonEntity != null) {
             if (Options.shouldApplyBasicZGlow()) GlowHandler.applyZGlow(pokemonEntity);
 
-            String type = (zMoveUsedEvent.getPokemon().getEffectedPokemon().heldItem().getItem() instanceof TypedZCrystalItem crystal ?
-                crystal.type.getName() :
-                zMoveUsedEvent.getPokemon().getEffectedPokemon().getPrimaryType().getName())
-                    .toLowerCase(Locale.ROOT);
+            // BEGIN FLOURISH MIGRATION
+            Item flourishItemType = GTGItems.getFlourishItemType(zMoveUsedEvent.getPokemon().getEffectedPokemon().heldItem());
+            Item heldItemType = (flourishItemType != null) ? flourishItemType : zMoveUsedEvent.getPokemon().getEffectedPokemon().heldItem().getItem();
+            String type = (heldItemType instanceof TypedZCrystalItem crystal ? crystal.type.getName() : zMoveUsedEvent.getPokemon().getEffectedPokemon().getPrimaryType().getName());
+//            String type = (zMoveUsedEvent.getPokemon().getEffectedPokemon().heldItem().getItem() instanceof TypedZCrystalItem crystal ? crystal.type.getName() : zMoveUsedEvent.getPokemon().getEffectedPokemon().getPrimaryType().getName());
+            // END FLOURISH MIGRATION
+
             String species = zMoveUsedEvent.getPokemon().getEffectedPokemon().getSpecies().showdownId();
             List<String> prioritisedEffects = List.of(
-                "z_move_" + species + "_" + type,
-                "z_move_" + species,
-                "z_move_" + type,
-                "z_move"
+                    "z_move_" + species + "_" + type,
+                    "z_move_" + species,
+                    "z_move_" + type,
+                    "z_move"
             );
 
             for (String effectName : prioritisedEffects) {
@@ -156,12 +183,12 @@ public abstract class CobblemonEventHandler {
                 Optional<RegistryEntry.Reference<EffectsData>> effect = EffectsData.get(pokemonEntity.getRegistryManager(), key);
                 if (effect.isPresent()) {
                     Optional<PokemonEntity> other = StreamSupport.stream(zMoveUsedEvent.getBattle().getActivePokemon().spliterator(), false)
-                        .map(ActiveBattlePokemon::getBattlePokemon)
-                        .filter(active -> zMoveUsedEvent.getPokemon().getFacedOpponents().contains(active))
-                        .filter(Objects::nonNull)
-                        .map(BattlePokemon::getEntity)
-                        .filter(Objects::nonNull)
-                        .findAny();
+                            .map(ActiveBattlePokemon::getBattlePokemon)
+                            .filter(active -> zMoveUsedEvent.getPokemon().getFacedOpponents().contains(active))
+                            .filter(Objects::nonNull)
+                            .map(BattlePokemon::getEntity)
+                            .filter(Objects::nonNull)
+                            .findAny();
 
                     effect.get().value().run(pokemonEntity, other.orElse(null), zMoveUsedEvent.getBattle());
                     break;
@@ -171,7 +198,7 @@ public abstract class CobblemonEventHandler {
         return Unit.INSTANCE;
     }
 
-    private static Unit battleStarted (BattleStartedEvent.Pre battleEvent) {
+    private static Unit battleStarted(BattleStartedPreEvent battleEvent) {
         for (BattleActor actor : battleEvent.getBattle().getActors()) {
             if (!(actor instanceof PlayerBattleActor)) continue;
             actor.getPokemonList().forEach(battlePokemon -> CobblemonEventHandler.resetBattleForms(battlePokemon.getEffectedPokemon()));
@@ -187,17 +214,36 @@ public abstract class CobblemonEventHandler {
             boolean hasTeraOrb = false;
             ItemStack teraOrb = null;
             for (ItemStack item : player.getEquippedItems()) {
-                if (Options.enabledMegaEvolution() && GimmickCheck.isKeyStone(item)) hasKeyStone = true;
-                if (Options.enabledZMoves() && GimmickCheck.isZRing(item)) hasZRing = true;
-                if (Options.enabledDynamax() && GimmickCheck.isDynamaxBand(item)) hasDynamax = true;
-                if (Options.enabledTerastal() && GimmickCheck.isTeraOrb(item)) {
-                    hasTeraOrb = true;
-                    teraOrb = item;
+                // BEGIN FLOURISH MIGRATION
+                Item flourishItem = GTGItems.getFlourishItemType(item);
+                if (flourishItem != null) {
+                    ItemStack defaultFlourishItem = flourishItem.getDefaultStack();
+                    if (Options.enabledMegaEvolution() && GimmickCheck.isFlourishKeyStone(item, defaultFlourishItem))
+                        hasKeyStone = true;
+                    if (Options.enabledZMoves() && GimmickCheck.isFlourishZRing(item, defaultFlourishItem))
+                        hasZRing = true;
+                    if (Options.enabledDynamax() && GimmickCheck.isFlourishDynamaxBand(item, defaultFlourishItem))
+                        hasDynamax = true;
+                    if (Options.enabledTerastal() && GimmickCheck.isFlourishTerraOrb(item, defaultFlourishItem)) {
+                        hasTeraOrb = true;
+                        teraOrb = item;
+                    }
+                } else {
+                    // END FLOURISH MIGRATION
+                    if (Options.enabledMegaEvolution() && GimmickCheck.isKeyStone(item)) hasKeyStone = true;
+                    if (Options.enabledZMoves() && GimmickCheck.isZRing(item)) hasZRing = true;
+                    if (Options.enabledDynamax() && GimmickCheck.isDynamaxBand(item)) hasDynamax = true;
+                    if (Options.enabledTerastal() && GimmickCheck.isTeraOrb(item)) {
+                        hasTeraOrb = true;
+                        teraOrb = item;
+                    }
+                    // BEGIN FLOURISH MIGRATION
                 }
+                // END FLOURISH MIGRATION
             }
             if (hasTeraOrb) {
                 PlayerPartyStore playerPartyStore = Cobblemon.INSTANCE.getStorage().getParty(player);
-                for (Pokemon partyMons: playerPartyStore) {
+                for (Pokemon partyMons : playerPartyStore) {
                     if (partyMons.getSpecies().getName().equals("Terapagos")) {
                         teraOrb.setDamage(0);
                         break;
@@ -230,7 +276,7 @@ public abstract class CobblemonEventHandler {
         return Unit.INSTANCE;
     }
 
-    private static boolean isPowerSpotNearby (ServerPlayerEntity player, int radius) {
+    private static boolean isPowerSpotNearby(ServerPlayerEntity player, int radius) {
         BlockPos playerPos = player.getBlockPos();
         ServerWorld world = player.getServerWorld();
 
@@ -248,7 +294,7 @@ public abstract class CobblemonEventHandler {
         return false; // Not found
     }
 
-    private static Unit megaEvolutionUsed (MegaEvolutionEvent megaEvent) {
+    private static Unit megaEvolutionUsed(MegaEvolutionEvent megaEvent) {
         megaEvent.getBattle().dispatchToFront(() -> {
             MegaHelper.megaEvolve(megaEvent.getPokemon().getEffectedPokemon(), true);
             megaEvent.getPokemon().sendUpdate();
@@ -260,8 +306,8 @@ public abstract class CobblemonEventHandler {
         Pokemon pokemon = megaEvent.getPokemon().getEffectedPokemon();
         if (pokemon.getEntity() != null) {
             List<String> prioritisedEffects = List.of(
-                "mega_evolution_" + megaEvent.getPokemon().getEffectedPokemon().showdownId().toLowerCase(Locale.ROOT),
-                "mega_evolution"
+                    "mega_evolution_" + megaEvent.getPokemon().getEffectedPokemon().showdownId(),
+                    "mega_evolution"
             );
 
             for (String effectName : prioritisedEffects) {
@@ -269,12 +315,12 @@ public abstract class CobblemonEventHandler {
                 Optional<RegistryEntry.Reference<EffectsData>> effect = EffectsData.get(pokemon.getEntity().getRegistryManager(), key);
                 if (effect.isPresent()) {
                     Optional<PokemonEntity> other = StreamSupport.stream(megaEvent.getBattle().getActivePokemon().spliterator(), false)
-                        .map(ActiveBattlePokemon::getBattlePokemon)
-                        .filter(active -> megaEvent.getPokemon().getFacedOpponents().contains(active))
-                        .filter(Objects::nonNull)
-                        .map(BattlePokemon::getEntity)
-                        .filter(Objects::nonNull)
-                        .findAny();
+                            .map(ActiveBattlePokemon::getBattlePokemon)
+                            .filter(active -> megaEvent.getPokemon().getFacedOpponents().contains(active))
+                            .filter(Objects::nonNull)
+                            .map(BattlePokemon::getEntity)
+                            .filter(Objects::nonNull)
+                            .findAny();
 
                     effect.get().value().run(pokemon.getEntity(), other.orElse(null), megaEvent.getBattle());
                     break;
@@ -285,23 +331,28 @@ public abstract class CobblemonEventHandler {
         return Unit.INSTANCE;
     }
 
-    private static Unit terrastallizationUsed (TerastallizationEvent terastallizationEvent) {
+    private static Unit terrastallizationUsed(TerastallizationEvent terastallizationEvent) {
         Pokemon pokemon = terastallizationEvent.getPokemon().getEffectedPokemon();
         ServerPlayerEntity player = pokemon.getOwnerPlayer();
 
         if (Options.canBreakTeraOrb() && player != null) {
             PlayerPartyStore playerPartyStore = Cobblemon.INSTANCE.getStorage().getParty(player);
             boolean hasTerapagos = false;
-            for(Pokemon partyMons: playerPartyStore){
-                if(partyMons.getSpecies().getName().equals("Terapagos")){
+            for (Pokemon partyMons : playerPartyStore) {
+                if (partyMons.getSpecies().getName().equals("Terapagos")) {
                     hasTerapagos = true;
                     break;
                 }
             }
 
-            if(!hasTerapagos){
+            if (!hasTerapagos) {
                 for (ItemStack item : player.getEquippedItems()) {
-                    if (item.isIn(GTGItemTags.BREAKABLE_TERA_ORBS)) {
+                    // BEGIN FLOURISH MIGRATION
+                    Item flourishItem = GTGItems.getFlourishItemType(item);
+                    ItemStack itemToCheck = (flourishItem != null) ? flourishItem.getDefaultStack() : item;
+                    if (itemToCheck.isIn(GTGItemTags.BREAKABLE_TERA_ORBS)) {
+//                    if (item.isIn(GTGItemTags.BREAKABLE_TERA_ORBS)) {
+                        // END FLOURISH MIGRATION
                         item.setDamage(item.getDamage() + 20);
                         break;
                     }
@@ -338,10 +389,10 @@ public abstract class CobblemonEventHandler {
             });
 
             List<String> prioritisedEffects = List.of(
-                "terastallization_" + pokemon.getSpecies().showdownId().toLowerCase(Locale.ROOT) + "_" + pokemon.getTeraType().showdownId().toLowerCase(Locale.ROOT),
-                "terastallization_" + pokemon.getSpecies().showdownId().toLowerCase(Locale.ROOT),
-                "terastallization_" + pokemon.getTeraType().showdownId().toLowerCase(Locale.ROOT),
-                "terastallization"
+                    "terastallization_" + pokemon.getSpecies().showdownId() + "_" + pokemon.getTeraType().showdownId(),
+                    "terastallization_" + pokemon.getSpecies().showdownId(),
+                    "terastallization_" + pokemon.getTeraType().showdownId(),
+                    "terastallization"
             );
 
             for (String effectName : prioritisedEffects) {
@@ -349,12 +400,12 @@ public abstract class CobblemonEventHandler {
                 Optional<RegistryEntry.Reference<EffectsData>> effect = EffectsData.get(pokemon.getEntity().getRegistryManager(), key);
                 if (effect.isPresent()) {
                     Optional<PokemonEntity> other = StreamSupport.stream(terastallizationEvent.getBattle().getActivePokemon().spliterator(), false)
-                        .map(ActiveBattlePokemon::getBattlePokemon)
-                        .filter(active -> terastallizationEvent.getPokemon().getFacedOpponents().contains(active))
-                        .filter(Objects::nonNull)
-                        .map(BattlePokemon::getEntity)
-                        .filter(Objects::nonNull)
-                        .findAny();
+                            .map(ActiveBattlePokemon::getBattlePokemon)
+                            .filter(active -> terastallizationEvent.getPokemon().getFacedOpponents().contains(active))
+                            .filter(Objects::nonNull)
+                            .map(BattlePokemon::getEntity)
+                            .filter(Objects::nonNull)
+                            .findAny();
 
                     effect.get().value().run(pokemon.getEntity(), other.orElse(null), terastallizationEvent.getBattle());
                     break;
@@ -364,27 +415,26 @@ public abstract class CobblemonEventHandler {
         return Unit.INSTANCE;
     }
 
-    public static Unit fixTeraTyping (PokemonCapturedEvent pokemonCapturedEvent) {
+    public static Unit fixTeraTyping(PokemonCapturedEvent pokemonCapturedEvent) {
         Pokemon pokemon = pokemonCapturedEvent.getPokemon();
 
         if (pokemon.getSpecies().getName().equals("Ogerpon")) {
             pokemon.setTeraType(TeraTypes.getGRASS());
-        }
-        else if (pokemon.getSpecies().getName().equals("Terapagos")) {
+        } else if (pokemon.getSpecies().getName().equals("Terapagos")) {
             pokemon.setTeraType(TeraTypes.getSTELLAR());
         }
 
         return Unit.INSTANCE;
     }
 
-    public static void resetBattlePokemon (ServerPlayerEntity player) {
+    public static void resetBattlePokemon(ServerPlayerEntity player) {
         PlayerPartyStore playerPartyStore = Cobblemon.INSTANCE.getStorage().getParty(player);
-        for (Pokemon pokemon: playerPartyStore){
+        for (Pokemon pokemon : playerPartyStore) {
             CobblemonEventHandler.resetBattleForms(pokemon);
         }
     }
 
-    public static void resetBattleForms (Pokemon pokemon) {
+    public static void resetBattleForms(Pokemon pokemon) {
         MegaHelper.megaDevolve(pokemon);
         pokemon.getPersistentData().remove("is_tera");
         if (pokemon.getPersistentData().contains("tera_aspect")) {
@@ -393,7 +443,7 @@ public abstract class CobblemonEventHandler {
         }
 
         GTGDynamicRegistries.battleForms.getOrEmpty(pokemon.getSpecies().getResourceIdentifier())
-            .ifPresent(form -> form.defaultForm().features().apply(pokemon));
+                .ifPresent(form -> form.defaultForm().features().apply(pokemon));
 
         if (pokemon.getAspects().contains("complete-percent")) { // Zygarde
             new StringSpeciesFeature("percent_cells", pokemon.getPersistentData().getString("percent_cells")).apply(pokemon);
@@ -429,7 +479,7 @@ public abstract class CobblemonEventHandler {
         pokemon.onChange(null);
     }
 
-    public static void updatePokemonPackets (PokemonBattle battle, BattlePokemon battlePokemon, boolean abilities) {
+    public static void updatePokemonPackets(PokemonBattle battle, BattlePokemon battlePokemon, boolean abilities) {
         if (abilities) {
             battle.sendUpdate(new AbilityUpdatePacket(battlePokemon::getEffectedPokemon, battlePokemon.getEffectedPokemon().getAbility().getTemplate()));
             battle.sendUpdate(new BattleUpdateTeamPokemonPacket(battlePokemon.getEffectedPokemon()));
@@ -437,34 +487,34 @@ public abstract class CobblemonEventHandler {
 
         for (ActiveBattlePokemon activeBattlePokemon : battle.getActivePokemon()) {
             if (
-                activeBattlePokemon.getBattlePokemon() != null
-                && activeBattlePokemon.getBattlePokemon().getEffectedPokemon().getOwnerPlayer() == battlePokemon.getEffectedPokemon().getOwnerPlayer()
-                && activeBattlePokemon.getBattlePokemon() == battlePokemon
+                    activeBattlePokemon.getBattlePokemon() != null
+                            && activeBattlePokemon.getBattlePokemon().getEffectedPokemon().getOwnerPlayer() == battlePokemon.getEffectedPokemon().getOwnerPlayer()
+                            && activeBattlePokemon.getBattlePokemon() == battlePokemon
             ) {
                 battle.sendSidedUpdate(activeBattlePokemon.getActor(),
-                    new BattleTransformPokemonPacket(activeBattlePokemon.getPNX(), battlePokemon, true),
-                    new BattleTransformPokemonPacket(activeBattlePokemon.getPNX(), battlePokemon, false),
-                    false
+                        new BattleTransformPokemonPacket(activeBattlePokemon.getPNX(), battlePokemon, true),
+                        new BattleTransformPokemonPacket(activeBattlePokemon.getPNX(), battlePokemon, false),
+                        false
                 );
             }
         }
     }
 
-    public static Unit formeChanges (FormeChangeEvent formeChangeEvent) {
+    public static Unit formeChanges(FormeChangeEvent formeChangeEvent) {
         if (formeChangeEvent.getFormeName().equals("x")
-            || formeChangeEvent.getFormeName().equals("y")
-            || formeChangeEvent.getFormeName().equals("mega")
-            || formeChangeEvent.getFormeName().equals("tera")) {
+                || formeChangeEvent.getFormeName().equals("y")
+                || formeChangeEvent.getFormeName().equals("mega")
+                || formeChangeEvent.getFormeName().equals("tera")) {
             return Unit.INSTANCE;
         }
 
         Optional<PokemonEntity> other = StreamSupport.stream(formeChangeEvent.getBattle().getActivePokemon().spliterator(), false)
-            .map(ActiveBattlePokemon::getBattlePokemon)
-            .filter(active -> formeChangeEvent.getPokemon().getFacedOpponents().contains(active))
-            .filter(Objects::nonNull)
-            .map(BattlePokemon::getEntity)
-            .filter(Objects::nonNull)
-            .findAny();
+                .map(ActiveBattlePokemon::getBattlePokemon)
+                .filter(active -> formeChangeEvent.getPokemon().getFacedOpponents().contains(active))
+                .filter(Objects::nonNull)
+                .map(BattlePokemon::getEntity)
+                .filter(Objects::nonNull)
+                .findAny();
 
         Pokemon pokemon = formeChangeEvent.getPokemon().getEffectedPokemon();
         if (pokemon.getSpecies().showdownId().equalsIgnoreCase("zygarde") && formeChangeEvent.getFormeName().equalsIgnoreCase("complete")) {
@@ -498,36 +548,53 @@ public abstract class CobblemonEventHandler {
         if (pokemon.getEntity() != null) {
             World world = pokemon.getEntity().getWorld();
             world.getRegistryManager().getOptionalWrapper(GTGDynamicRegistryKeys.BATTLE_FORM)
-                .flatMap(registry -> registry.getOptional(BattleForm.key(pokemon)))
-                .ifPresent(battleForm -> battleForm.value()
-                    .applyForm(
-                        pokemon.getEntity(),
-                        other.orElse(null),
-                        formeChangeEvent.getBattle(),
-                        formeChangeEvent.getFormeName()
-                    )
-                );
+                    .flatMap(registry -> registry.getOptional(BattleForm.key(pokemon)))
+                    .ifPresent(battleForm -> battleForm.value().applyForm(pokemon.getEntity(), other.orElse(null), formeChangeEvent.getBattle(), formeChangeEvent.getFormeName()));
         }
 
         return Unit.INSTANCE;
     }
 
-    private static Unit heldItemFormChange (HeldItemEvent.Pre heldItemEvent) {
-        if (heldItemEvent.getReturning().getItem() instanceof GenericFormChangeHeldItem formChanger) {
+    private static Unit heldItemFormChange(HeldItemEvent.Pre heldItemEvent) {
+        if (MegaHelper.hasMegaAspect(heldItemEvent.getPokemon())
+                && !ItemStack.areItemsEqual(heldItemEvent.getReceiving(), heldItemEvent.getReturning())
+                && (heldItemEvent.getPokemon().getEntity() == null || !heldItemEvent.getPokemon().getEntity().isBattling())
+        ) {
+            MegaHelper.megaDevolve(heldItemEvent.getPokemon());
+        }
+
+        // BEGIN FLOURISH MIGRATION
+        Item flourishItem = GTGItems.getFlourishItemType(heldItemEvent.getReturning());
+        Item returningItem = (flourishItem != null) ? flourishItem : heldItemEvent.getReturning().getItem();
+
+        if (returningItem instanceof GenericFormChangeHeldItem formChanger) {
             formChanger.removeFromPokemon(heldItemEvent.getPokemon());
         }
-        if (heldItemEvent.getReceiving().getItem() instanceof GenericFormChangeHeldItem formChanger) {
+        if (returningItem instanceof GenericFormChangeHeldItem formChanger) {
             formChanger.giveToPokemon(heldItemEvent.getPokemon());
         }
+        // END FLOURISH ITEM
+//        if (heldItemEvent.getReturning().getItem() instanceof GenericFormChangeHeldItem formChanger) {
+//            formChanger.removeFromPokemon(heldItemEvent.getPokemon());
+//        }
+//        if (heldItemEvent.getReceiving().getItem() instanceof GenericFormChangeHeldItem formChanger) {
+//            formChanger.giveToPokemon(heldItemEvent.getPokemon());
+//        }
+
 
         return Unit.INSTANCE;
     }
 
-    private static Unit pokemonHealed (PokemonHealedEvent pokemonHealedEvent) {
+    private static Unit pokemonHealed(PokemonHealedEvent pokemonHealedEvent) {
         ServerPlayerEntity player = pokemonHealedEvent.getPokemon().getOwnerPlayer();
         if (player != null && pokemonHealedEvent.getSource() == HealingSource.Force.INSTANCE) {
             for (ItemStack item : player.getEquippedItems()) {
-                if (item.isIn(GTGItemTags.BREAKABLE_TERA_ORBS)) {
+                // BEGIN FLOURISH MIGRATION
+                Item flourishItem = GTGItems.getFlourishItemType(item);
+                ItemStack itemToCheck = (flourishItem != null) ? flourishItem.getDefaultStack() : item;
+                if (itemToCheck.isIn(GTGItemTags.BREAKABLE_TERA_ORBS)) {
+//                    if (item.isIn(GTGItemTags.BREAKABLE_TERA_ORBS)) {
+                    // END FLOURISH MIGRATION
                     item.setDamage(0);
                     break;
                 }
@@ -536,7 +603,7 @@ public abstract class CobblemonEventHandler {
         return Unit.INSTANCE;
     }
 
-    private static Unit pokemonSentOut (PokemonSentEvent.Post event) {
+    private static Unit pokemonSentOut(PokemonSentPostEvent event) {
         if (Options.shouldApplyBasicTeraGlow() && event.getPokemon().getPersistentData().contains("is_tera")) {
             GlowHandler.applyTeraGlow(event.getPokemonEntity());
         }

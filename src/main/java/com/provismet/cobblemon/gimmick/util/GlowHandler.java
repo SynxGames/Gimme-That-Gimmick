@@ -6,8 +6,10 @@ import com.cobblemon.mod.common.api.types.tera.TeraType;
 import com.cobblemon.mod.common.api.types.tera.elemental.ElementalTypeTeraType;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.provismet.cobblemon.gimmick.item.zmove.TypedZCrystalItem;
+import com.provismet.cobblemon.gimmick.registry.GTGItems;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.item.Item;
 import net.minecraft.scoreboard.ServerScoreboard;
 import net.minecraft.scoreboard.Team;
 import net.minecraft.server.world.ServerWorld;
@@ -40,7 +42,7 @@ public class GlowHandler {
         }
     }
 
-    public static void applyTeraGlow (PokemonEntity pokemon) {
+    public static void applyTeraGlow(PokemonEntity pokemon) {
         if (pokemon.getWorld() instanceof ServerWorld serverLevel) {
             pokemon.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, Integer.MAX_VALUE, 0, false, false));
             ServerScoreboard scoreboard = serverLevel.getScoreboard();
@@ -58,9 +60,15 @@ public class GlowHandler {
         }
     }
 
-    public static void applyZGlow (PokemonEntity pokemon) {
+    public static void applyZGlow(PokemonEntity pokemon) {
         ElementalType type;
-        if (pokemon.getPokemon().heldItem().getItem() instanceof TypedZCrystalItem crystal) {
+        // BEGIN FLOURISH MIGRATION
+        Item flourishItem = GTGItems.getFlourishItemType(pokemon.getPokemon().heldItem());
+        Item item = (flourishItem != null) ? flourishItem : pokemon.getPokemon().heldItem().getItem();
+        if (item instanceof TypedZCrystalItem crystal) {
+//        if (pokemon.getPokemon().heldItem().getItem() instanceof TypedZCrystalItem crystal) {
+        // END FLOURISH MIGRATION
+
             type = crystal.type;
         } else { // Only possible if the crystal is a custom item not controlled by GTG.
             type = pokemon.getPokemon().getPrimaryType();
