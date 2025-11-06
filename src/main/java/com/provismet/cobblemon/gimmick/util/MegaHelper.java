@@ -7,7 +7,9 @@ import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.provismet.cobblemon.gimmick.GimmeThatGimmickMain;
 import com.provismet.cobblemon.gimmick.api.data.component.MegaEvolution;
 import com.provismet.cobblemon.gimmick.api.data.registry.EffectsData;
+import com.provismet.cobblemon.gimmick.item.PolymerHeldItem;
 import com.provismet.cobblemon.gimmick.registry.GTGItemDataComponents;
+import com.provismet.cobblemon.gimmick.registry.GTGItems;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -50,7 +52,13 @@ public class MegaHelper {
     }
 
     public static boolean megaEvolve (Pokemon pokemon, boolean inBattle) {
-        ItemStack megaStone = pokemon.heldItem();
+        // BEGIN FLOURISH MIGRATION
+        ItemStack megaStone = Optional.ofNullable(GTGItems.getFlourishItemType(pokemon.heldItem()))
+                .map(PolymerHeldItem::getDefaultStack)
+                .orElse(pokemon.heldItem());
+        // END FLOURISH MIGRATION
+//        ItemStack megaStone = pokemon.heldItem();
+
         MegaEvolution mega = megaStone.getOrDefault(GTGItemDataComponents.MEGA_EVOLUTION, MegaEvolution.DEFAULT);
 
         if (inBattle || mega.pokemon().matches(pokemon) || MegaEvolution.RAYQUAZA.pokemon().matches(pokemon)) {
@@ -69,7 +77,13 @@ public class MegaHelper {
     }
 
     public static void megaDevolve (Pokemon pokemon) {
-        ItemStack megaStone = pokemon.heldItem();
+        // BEGIN FLOURISH MIGRATION
+        ItemStack megaStone = Optional.ofNullable(GTGItems.getFlourishItemType(pokemon.heldItem()))
+                .map(PolymerHeldItem::getDefaultStack)
+                .orElse(pokemon.heldItem());
+        // END FLOURISH MIGRATION
+//        ItemStack megaStone = pokemon.heldItem();
+
         MegaEvolution mega = megaStone.getOrDefault(GTGItemDataComponents.MEGA_EVOLUTION, MegaEvolution.DEFAULT);
         mega.onRemove().apply(pokemon);
         pokemon.getPersistentData().remove("is_mega");

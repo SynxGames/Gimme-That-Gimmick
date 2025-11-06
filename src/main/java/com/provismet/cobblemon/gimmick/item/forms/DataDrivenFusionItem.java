@@ -2,9 +2,11 @@ package com.provismet.cobblemon.gimmick.item.forms;
 
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
+import com.provismet.cobblemon.gimmick.api.data.component.FormToggle;
 import com.provismet.cobblemon.gimmick.api.data.component.Fusion;
 import com.provismet.cobblemon.gimmick.api.data.registry.EffectsData;
 import com.provismet.cobblemon.gimmick.registry.GTGItemDataComponents;
+import com.provismet.cobblemon.gimmick.registry.GTGItems;
 import eu.pb4.polymer.resourcepack.api.PolymerModelData;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -17,7 +19,12 @@ public class DataDrivenFusionItem extends AbstractDataDrivenFormItem implements 
 
     @Override
     public boolean canBeMerged (ItemStack stack, Pokemon other) {
-        Fusion fusionData = stack.get(GTGItemDataComponents.FUSION);
+        // BEGIN FLOURISH CHECK
+        Item flourishItem = GTGItems.getFlourishItemType(stack);
+        ItemStack stackToCheck = (flourishItem != null) ? flourishItem.getDefaultStack() : stack;
+        Fusion fusionData = stackToCheck.get(GTGItemDataComponents.FUSION);
+//        Fusion fusionData = stack.get(GTGItemDataComponents.FUSION);
+        // END FLOURISH CHECK
         if (fusionData != null) {
             return fusionData.canBeUsedAsInput(other);
         }
@@ -26,7 +33,12 @@ public class DataDrivenFusionItem extends AbstractDataDrivenFormItem implements 
 
     @Override
     public void applyUnplitForme (ItemStack stack, Pokemon pokemon) {
-        Fusion fusionData = stack.get(GTGItemDataComponents.FUSION);
+        // BEGIN FLOURISH CHECK
+        Item flourishItem = GTGItems.getFlourishItemType(stack);
+        ItemStack stackToCheck = (flourishItem != null) ? flourishItem.getDefaultStack() : stack;
+        Fusion fusionData = stackToCheck.get(GTGItemDataComponents.FUSION);
+//        Fusion fusionData = stack.get(GTGItemDataComponents.FUSION);
+        // END FLOURISH CHECK
         if (fusionData != null) {
             fusionData.removeFeatures(pokemon);
 
@@ -41,7 +53,12 @@ public class DataDrivenFusionItem extends AbstractDataDrivenFormItem implements 
 
     @Override
     public void applyFusedForme (ItemStack stack, Pokemon pokemon, Pokemon other) {
-        Fusion fusionData = stack.get(GTGItemDataComponents.FUSION);
+        // BEGIN FLOURISH CHECK
+        Item flourishItem = GTGItems.getFlourishItemType(stack);
+        ItemStack stackToCheck = (flourishItem != null) ? flourishItem.getDefaultStack() : stack;
+        Fusion fusionData = stackToCheck.get(GTGItemDataComponents.FUSION);
+//        Fusion fusionData = stack.get(GTGItemDataComponents.FUSION);
+        // END FLOURISH CHECK
         if (fusionData != null) {
             fusionData.applyFeatures(pokemon, other);
 
@@ -56,7 +73,12 @@ public class DataDrivenFusionItem extends AbstractDataDrivenFormItem implements 
 
     @Override
     public boolean canUseOnPokemon (ItemStack stack, Pokemon pokemon) {
-        Fusion fusionData = stack.get(GTGItemDataComponents.FUSION);
+        // BEGIN FLOURISH CHECK
+        Item flourishItem = GTGItems.getFlourishItemType(stack);
+        ItemStack stackToCheck = (flourishItem != null) ? flourishItem.getDefaultStack() : stack;
+        Fusion fusionData = stackToCheck.get(GTGItemDataComponents.FUSION);
+//        Fusion fusionData = stack.get(GTGItemDataComponents.FUSION);
+        // END FLOURISH CHECK
 
         if (fusionData == null) return false;
         return fusionData.recipient().matches(pokemon);

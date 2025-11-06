@@ -49,8 +49,8 @@
 	},
 	"breaks": {
 		"genesisforms": "*"
-	},
-	"conflicts": {
-		"flourish": "*"
 	}
+//	"conflicts": {
+//		"flourish": "*"
+//	}
 }
