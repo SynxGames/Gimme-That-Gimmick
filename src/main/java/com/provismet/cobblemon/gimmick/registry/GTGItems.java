@@ -120,6 +120,13 @@ public abstract class GTGItems {
             String name = extractStringFromComponent(value);
 
             if (name != null) {
+                // Handle special Flourish key items that map to GTG key items
+                PolymerHeldItem specialItem = mapFlourishKeyItem(name);
+                if (specialItem != null) {
+                    return specialItem;
+                }
+
+                // Try to find a matching GTG item
                 Item item = Registries.ITEM.get(GimmeThatGimmickMain.identifier(name));
                 if (item instanceof PolymerHeldItem held) {
                     return held;
@@ -132,11 +139,49 @@ public abstract class GTGItems {
             String name = extractStringFromComponent(value);
 
             if (name != null) {
-                Item item = Registries.ITEM.get(GimmeThatGimmickMain.identifier(name));
-                if (item instanceof PolymerHeldItem held) {
-                    return held;
+                // Use the same mapping function for form items
+                PolymerHeldItem mappedItem = mapFlourishKeyItem(name);
+                if (mappedItem != null) {
+                    return mappedItem;
                 }
             }
+        }
+
+        return null;
+    }
+
+    /**
+     * Maps Flourish item names to GTG items
+     * Handles naming differences between Flourish and GTG
+     */
+    @Nullable
+    private static PolymerHeldItem mapFlourishKeyItem(String flourishName) {
+        // Special key items
+        if (flourishName.equals("mega_keystone")) return MEGA_BRACELET;
+        if (flourishName.equals("tera_orb")) return TERA_ORB;
+        if (flourishName.equals("z_ring")) return Z_RING;
+
+        // Orbs with different names
+        if (flourishName.equals("adamantorb")) flourishName = "adamantcrystal";
+        if (flourishName.equals("lustrousorb")) flourishName = "lustrousglobe";
+        if (flourishName.equals("griseousorb")) flourishName = "griseouscore";
+
+        // Silvally memories (Flourish: "bugmemory" -> GTG: "bug_memory")
+        if (flourishName.endsWith("memory") && !flourishName.contains("_")) {
+            String type = flourishName.substring(0, flourishName.length() - 6); // Remove "memory"
+            flourishName = type + "_memory";
+        }
+
+        // Genesect drives (Flourish: "burndrive" -> GTG: "burn_drive")
+        if (flourishName.endsWith("drive") && !flourishName.contains("_")) {
+            String driveType = flourishName.substring(0, flourishName.length() - 5); // Remove "drive"
+            flourishName = driveType + "_drive";
+        }
+
+        // Try to find the item in GTG registry
+        Item item = Registries.ITEM.get(GimmeThatGimmickMain.identifier(flourishName));
+        if (item instanceof PolymerHeldItem held) {
+            return held;
         }
 
         return null;
