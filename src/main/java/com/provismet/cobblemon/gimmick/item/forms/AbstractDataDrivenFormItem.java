@@ -37,7 +37,12 @@ public abstract class AbstractDataDrivenFormItem extends PolymerPokemonSelecting
 
     @Override
     public Item getPolymerItem (ItemStack stack, @Nullable ServerPlayerEntity player) {
-        DataItem data = stack.get(GTGItemDataComponents.DATA_ITEM);
+        // BEGIN FLOURISH MIGRATION
+        com.provismet.cobblemon.gimmick.item.PolymerHeldItem flourishItem = com.provismet.cobblemon.gimmick.registry.GTGItems.getFlourishItemType(stack);
+        ItemStack stackToCheck = (flourishItem != null) ? flourishItem.getDefaultStack() : stack;
+        DataItem data = stackToCheck.get(GTGItemDataComponents.DATA_ITEM);
+//        DataItem data = stack.get(GTGItemDataComponents.DATA_ITEM);
+        // END FLOURISH MIGRATION
         if (data != null) {
             Optional<Item> item = Registries.ITEM.getOrEmpty(data.baseItem());
             if (item.isPresent()) return item.get();
@@ -49,7 +54,12 @@ public abstract class AbstractDataDrivenFormItem extends PolymerPokemonSelecting
     @Override
     public ItemStack getPolymerItemStack (ItemStack itemStack, TooltipType tooltipType, RegistryWrapper.WrapperLookup lookup, @Nullable ServerPlayerEntity player) {
         ItemStack stack = super.getPolymerItemStack(itemStack, tooltipType, lookup, player);
-        DataItem data = itemStack.get(GTGItemDataComponents.DATA_ITEM);
+        // BEGIN FLOURISH MIGRATION
+        com.provismet.cobblemon.gimmick.item.PolymerHeldItem flourishItem = com.provismet.cobblemon.gimmick.registry.GTGItems.getFlourishItemType(itemStack);
+        ItemStack stackToCheck = (flourishItem != null) ? flourishItem.getDefaultStack() : itemStack;
+        DataItem data = stackToCheck.get(GTGItemDataComponents.DATA_ITEM);
+//        DataItem data = itemStack.get(GTGItemDataComponents.DATA_ITEM);
+        // END FLOURISH MIGRATION
         if (data != null) data.applyTo(stack);
         return stack;
     }

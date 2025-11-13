@@ -559,16 +559,19 @@ public abstract class CobblemonEventHandler {
         }
 
         // BEGIN FLOURISH MIGRATION
-        Item flourishItem = GTGItems.getFlourishItemType(heldItemEvent.getReturning());
-        Item returningItem = (flourishItem != null) ? flourishItem : heldItemEvent.getReturning().getItem();
+        Item flourishItemReturning = GTGItems.getFlourishItemType(heldItemEvent.getReturning());
+        Item returningItem = (flourishItemReturning != null) ? flourishItemReturning : heldItemEvent.getReturning().getItem();
+
+        Item flourishItemReceiving = GTGItems.getFlourishItemType(heldItemEvent.getReceiving());
+        Item receivingItem = (flourishItemReceiving != null) ? flourishItemReceiving : heldItemEvent.getReceiving().getItem();
 
         if (returningItem instanceof GenericFormChangeHeldItem formChanger) {
             formChanger.removeFromPokemon(heldItemEvent.getPokemon());
         }
-        if (returningItem instanceof GenericFormChangeHeldItem formChanger) {
+        if (receivingItem instanceof GenericFormChangeHeldItem formChanger) {
             formChanger.giveToPokemon(heldItemEvent.getPokemon());
         }
-        // END FLOURISH ITEM
+        // END FLOURISH MIGRATION
 //        if (heldItemEvent.getReturning().getItem() instanceof GenericFormChangeHeldItem formChanger) {
 //            formChanger.removeFromPokemon(heldItemEvent.getPokemon());
 //        }

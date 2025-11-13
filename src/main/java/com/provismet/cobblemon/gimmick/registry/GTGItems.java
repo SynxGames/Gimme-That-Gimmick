@@ -9,6 +9,7 @@ import com.cobblemon.mod.common.api.types.tera.TeraTypes;
 import com.cobblemon.mod.common.pokemon.helditem.CobblemonHeldItemManager;
 import com.cobblemon.mod.common.util.MiscUtilsKt;
 import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.Codec;
 import com.provismet.cobblemon.gimmick.GimmeThatGimmickMain;
 import com.provismet.cobblemon.gimmick.api.data.component.MegaEvolution;
 import com.provismet.cobblemon.gimmick.item.PolymerBlockItemTextured;
@@ -35,6 +36,8 @@ import com.provismet.cobblemon.gimmick.item.tera.TeraOrbItem;
 import com.provismet.cobblemon.gimmick.item.tera.TeraShardItem;
 import com.provismet.cobblemon.gimmick.item.zmove.SpeciesZCrystalItem;
 import com.provismet.cobblemon.gimmick.item.zmove.TypedZCrystalItem;
+import com.provismet.cobblemon.gimmick.util.ShowdownItem;
+import eu.pb4.polymer.core.api.other.PolymerComponent;
 import eu.pb4.polymer.resourcepack.api.PolymerModelData;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.minecraft.block.Block;
@@ -50,6 +53,7 @@ import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Rarity;
 import net.minecraft.util.Unit;
+import net.minecraft.util.dynamic.Codecs;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -58,25 +62,109 @@ import java.util.Map;
 
 public abstract class GTGItems {
 
-    // BEGIN FLOURISH MIGRATION
+// BEGIN FLOURISH MIGRATION
+
     /**
-     * Flourish key, held in custom data components
+     * Flourish showdown_item component key
      */
-    public static final String FLOURISH_KEY = "flourish:showdown_item";
+    public static final Identifier FLOURISH_SHOWDOWN_ITEM_ID =
+            new Identifier("flourish", "showdown_item");
+
+    /**
+     * Flourish form_item component key
+     */
+    public static final Identifier FLOURISH_FORM_ITEM_ID =
+            new Identifier("flourish", "form_item");
+
+    private static final ComponentType<?> FLOURISH_SHOWDOWN_KEY;
+    private static final ComponentType<?> FLOURISH_FORM_KEY;
+
+    static {
+        ComponentType<?> existingShowdown = Registries.DATA_COMPONENT_TYPE.get(FLOURISH_SHOWDOWN_ITEM_ID);
+        if (existingShowdown != null) {
+            FLOURISH_SHOWDOWN_KEY = existingShowdown;
+
+        } else {
+            FLOURISH_SHOWDOWN_KEY = Registry.register(
+                    Registries.DATA_COMPONENT_TYPE,
+                    FLOURISH_SHOWDOWN_ITEM_ID,
+                    ComponentType.<ShowdownItem>builder()
+                            .codec(ShowdownItem.CODEC)
+                            .cache()
+                            .build()
+            );
+            PolymerComponent.registerDataComponent(FLOURISH_SHOWDOWN_KEY);
+        }
+
+        ComponentType<?> existingForm = Registries.DATA_COMPONENT_TYPE.get(FLOURISH_FORM_ITEM_ID);
+        if (existingForm != null) {
+            FLOURISH_FORM_KEY = existingForm;
+
+        } else {
+            FLOURISH_FORM_KEY = Registry.register(
+                    Registries.DATA_COMPONENT_TYPE,
+                    FLOURISH_FORM_ITEM_ID,
+                    ComponentType.<ShowdownItem>builder()
+                            .codec(ShowdownItem.CODEC)
+                            .cache()
+                            .build()
+            );
+            PolymerComponent.registerDataComponent(FLOURISH_FORM_KEY);
+        }
+    }
 
     @Nullable
     public static PolymerHeldItem getFlourishItemType(ItemStack stack) {
-        NbtComponent component = stack.get(DataComponentTypes.CUSTOM_DATA);
-        if (component == null) return null;
+        if (FLOURISH_SHOWDOWN_KEY != null) {
+            Object value = stack.get(FLOURISH_SHOWDOWN_KEY);
+            String name = extractStringFromComponent(value);
 
-        String name = component.copyNbt().getString(FLOURISH_KEY);
-        if (name == null) return null;
+            if (name != null) {
+                Item item = Registries.ITEM.get(GimmeThatGimmickMain.identifier(name));
+                if (item instanceof PolymerHeldItem held) {
+                    return held;
+                }
+            }
+        }
 
-        Item item = Registries.ITEM.get(GimmeThatGimmickMain.identifier(name));
-        return item instanceof PolymerHeldItem ? (PolymerHeldItem) item : null;
+        if (FLOURISH_FORM_KEY != null) {
+            Object value = stack.get(FLOURISH_FORM_KEY);
+            String name = extractStringFromComponent(value);
+
+            if (name != null) {
+                Item item = Registries.ITEM.get(GimmeThatGimmickMain.identifier(name));
+                if (item instanceof PolymerHeldItem held) {
+                    return held;
+                }
+            }
+        }
+
+        return null;
     }
-    // END FLOURISH MIGRATION
 
+    /**
+     * Extracts a string from either:
+     * - Your ShowdownItem
+     * - Flourish's ShowdownItem/FormItem
+     */
+    @Nullable
+    private static String extractStringFromComponent(Object componentValue) {
+        if (componentValue == null) return null;
+
+        if (componentValue instanceof ShowdownItem ours) {
+            return ours.getShowdownItem();
+        }
+
+        try {
+            var m = componentValue.getClass().getMethod("getShowdownItem");
+            Object r = m.invoke(componentValue);
+            return r instanceof String ? (String) r : null;
+        } catch (Exception ignore) {
+            return null;
+        }
+    }
+
+    // END FLOURISH MIGRATION
     // Key Items
     public static final PolymerHeldItem MEGA_BRACELET = register("mega_bracelet", (settings, item, modelData) -> new PolymerHeldItem(settings.rarity(Rarity.EPIC).maxCount(1).component(GTGItemDataComponents.KEY_STONE, Unit.INSTANCE), item, modelData, 1));
     public static final PolymerHeldItem Z_RING = register("z-ring", (settings, item, modelData) -> new PolymerHeldItem(settings.rarity(Rarity.EPIC).maxCount(1).component(GTGItemDataComponents.Z_RING, Unit.INSTANCE), item, modelData, 1));
