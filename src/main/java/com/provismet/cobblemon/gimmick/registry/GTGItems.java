@@ -59,6 +59,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public abstract class GTGItems {
 
@@ -155,36 +156,36 @@ public abstract class GTGItems {
      * Handles naming differences between Flourish and GTG
      */
     @Nullable
-    private static PolymerHeldItem mapFlourishKeyItem(String flourishName) {
-        // Special key items
-        if (flourishName.equals("mega_keystone")) return MEGA_BRACELET;
-        if (flourishName.equals("tera_orb")) return TERA_ORB;
-        if (flourishName.equals("z_ring")) return Z_RING;
-
-        // Orbs with different names
-        if (flourishName.equals("adamantorb")) flourishName = "adamantcrystal";
-        if (flourishName.equals("lustrousorb")) flourishName = "lustrousglobe";
-        if (flourishName.equals("griseousorb")) flourishName = "griseouscore";
-
-        // Silvally memories (Flourish: "bugmemory" -> GTG: "bug_memory")
-        if (flourishName.endsWith("memory") && !flourishName.contains("_")) {
-            String type = flourishName.substring(0, flourishName.length() - 6); // Remove "memory"
-            flourishName = type + "_memory";
+    private static PolymerHeldItem mapFlourishKeyItem(String name) {
+        switch (name) {
+            case "mega_keystone":
+                return MEGA_BRACELET;
+            case "tera_orb":
+                return TERA_ORB;
+            case "z_ring":
+                return Z_RING;
         }
 
-        // Genesect drives (Flourish: "burndrive" -> GTG: "burn_drive")
-        if (flourishName.endsWith("drive") && !flourishName.contains("_")) {
-            String driveType = flourishName.substring(0, flourishName.length() - 5); // Remove "drive"
-            flourishName = driveType + "_drive";
+        switch (name) {
+            case "adamantorb":
+                name = "adamantcrystal";
+                break;
+            case "lustrousorb":
+                name = "lustrousglobe";
+                break;
+            case "griseousorb":
+                name = "griseouscore";
+                break;
         }
-
-        // Try to find the item in GTG registry
-        Item item = Registries.ITEM.get(GimmeThatGimmickMain.identifier(flourishName));
-        if (item instanceof PolymerHeldItem held) {
-            return held;
+        if (!name.contains("_")) {
+            if (name.endsWith("memory")) {
+                name = name.substring(0, name.length() - 6) + "_memory";
+            } else if (name.endsWith("drive")) {
+                name = name.substring(0, name.length() - 5) + "_drive";
+            }
         }
-
-        return null;
+        Item item = Registries.ITEM.get(GimmeThatGimmickMain.identifier(name));
+        return (item instanceof PolymerHeldItem held) ? held : null;
     }
 
     /**
@@ -209,7 +210,34 @@ public abstract class GTGItems {
         }
     }
 
+    /**
+     * Maps Flourish item names to showdown names
+     * Applies GTG naming conventions
+     */
+    private static final Set<String> NULLABLE = Set.of("mega_keystone", "tera_orb", "z_ring");
+
+    private static final Map<String, String> REMAP = Map.of(
+            "adamantorb", "adamantcrystal",
+            "lustrousorb", "lustrousglobe",
+            "griseousorb", "griseouscore"
+    );
+
+    @Nullable
+    private static String mapFlourishNameToShowdownName(String name) {
+        if (NULLABLE.contains(name)) return null;
+
+        String mapped = REMAP.get(name);
+        if (mapped != null) return mapped;
+
+        if (!name.contains("_")) {
+            if (name.endsWith("memory")) return name.substring(0, name.length() - 6) + "_memory";
+            if (name.endsWith("drive")) return name.substring(0, name.length() - 5) + "_drive";
+        }
+
+        return name;
+    }
     // END FLOURISH MIGRATION
+
     // Key Items
     public static final PolymerHeldItem MEGA_BRACELET = register("mega_bracelet", (settings, item, modelData) -> new PolymerHeldItem(settings.rarity(Rarity.EPIC).maxCount(1).component(GTGItemDataComponents.KEY_STONE, Unit.INSTANCE), item, modelData, 1));
     public static final PolymerHeldItem Z_RING = register("z-ring", (settings, item, modelData) -> new PolymerHeldItem(settings.rarity(Rarity.EPIC).maxCount(1).component(GTGItemDataComponents.Z_RING, Unit.INSTANCE), item, modelData, 1));
@@ -495,6 +523,21 @@ public abstract class GTGItems {
             if (id == null) return null;
             return id.getFirst();
         });
+        // BEGIN FLOURISH MIGRATION
+        // Register Flourish showdown item remapping
+        CobblemonHeldItemManager.INSTANCE.registerStackRemap(stack -> {
+            if (FLOURISH_SHOWDOWN_KEY != null) {
+                Object value = stack.get(FLOURISH_SHOWDOWN_KEY);
+                String flourishName = extractStringFromComponent(value);
+                if (flourishName != null) {
+                    // Apply name mappings to get the GTG/showdown equivalent name
+                    String gtgName = mapFlourishNameToShowdownName(flourishName);
+                    return gtgName;
+                }
+            }
+            return null;
+        });
+        // END FLOURISH MIGRATION
     }
 
     @FunctionalInterface
