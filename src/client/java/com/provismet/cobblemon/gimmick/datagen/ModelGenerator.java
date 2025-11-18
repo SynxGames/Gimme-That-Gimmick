@@ -31,6 +31,7 @@ public class ModelGenerator extends FabricModelProvider {
         this.createDynamax(register);
         this.createTeraShards(register);
         this.createFormChanges(register);
+        this.createStatItems(register);
     }
 
     private void createKeyItems (Consumer<Item> register) {
@@ -222,5 +223,46 @@ public class ModelGenerator extends FabricModelProvider {
         register.accept(GTGItems.N_LUNARIZER);
         register.accept(GTGItems.N_SOLARIZER);
         register.accept(GTGItems.ZYGARDE_CUBE);
+
+        // Oricorio Nectars
+        register.accept(GTGItems.PINK_NECTAR);
+        register.accept(GTGItems.RED_NECTAR);
+        register.accept(GTGItems.YELLOW_NECTAR);
+        register.accept(GTGItems.PURPLE_NECTAR);
+
+        // Rotom Appliances
+        register.accept(GTGItems.LAWN_MOWER);
+        register.accept(GTGItems.MICROWAVE_OVEN_HEAT);
+        register.accept(GTGItems.MICROWAVE_OVEN_WASH);
+        register.accept(GTGItems.REFRIGERATOR);
+        register.accept(GTGItems.ELECTRIC_FAN);
+
+        // Battle Bond
+        register.accept(GTGItems.BATTLE_BOND_PATCH);
+    }
+
+    private void createStatItems (Consumer<Item> register) {
+        register.accept(GTGItems.ROSE_INCENSE);
+        register.accept(GTGItems.LEEK);
+        register.accept(GTGItems.LAX_INCENSE);
+        register.accept(GTGItems.ROCK_INCENSE);
+        register.accept(GTGItems.ODD_INCENSE);
+        register.accept(GTGItems.DEEP_SEA_TOOTH);
+        register.accept(GTGItems.THICK_CLUB);
+        register.accept(GTGItems.LUCKY_PUNCH);
+        register.accept(GTGItems.LUMINOUS_MOSS);
+        register.accept(GTGItems.SNOWBALL);
+        register.accept(GTGItems.DEEP_SEA_SCALE);
+        register.accept(GTGItems.GRIP_CLAW);
+        register.accept(GTGItems.MACHO_BRACE);
+        register.accept(GTGItems.CLEAR_AMULET);
+        register.accept(GTGItems.FULL_INCENSE);
+        register.accept(GTGItems.BOOSTER_ENERGY);
+        register.accept(GTGItems.LAGGING_TAIL);
+
+        // Bottle Caps
+        register.accept(GTGItems.BRONZE_BOTTLE_CAP);
+        register.accept(GTGItems.SILVER_BOTTLE_CAP);
+        register.accept(GTGItems.GOLD_BOTTLE_CAP);
     }
 }

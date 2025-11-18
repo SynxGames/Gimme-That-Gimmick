@@ -26,9 +26,11 @@ import com.provismet.cobblemon.gimmick.item.forms.MeteoriteItem;
 import com.provismet.cobblemon.gimmick.item.forms.MoveChangingFormChangeHeldItem;
 import com.provismet.cobblemon.gimmick.item.forms.NLunarizerItem;
 import com.provismet.cobblemon.gimmick.item.forms.NSolarizerItem;
+import com.provismet.cobblemon.gimmick.item.forms.OricorioNectarItem;
 import com.provismet.cobblemon.gimmick.item.forms.PrisonBottleItem;
 import com.provismet.cobblemon.gimmick.item.forms.ReinsOfUnityItem;
 import com.provismet.cobblemon.gimmick.item.forms.RevealGlassItem;
+import com.provismet.cobblemon.gimmick.item.forms.RotomApplianceItem;
 import com.provismet.cobblemon.gimmick.item.forms.RotomCatalogItem;
 import com.provismet.cobblemon.gimmick.item.forms.ZygardeCubeItem;
 import com.provismet.cobblemon.gimmick.item.mega.MegaStoneItem;
@@ -141,10 +143,7 @@ public abstract class GTGItems {
 
             if (name != null) {
                 // Use the same mapping function for form items
-                PolymerHeldItem mappedItem = mapFlourishKeyItem(name);
-                if (mappedItem != null) {
-                    return mappedItem;
-                }
+                return mapFlourishKeyItem(name);
             }
         }
 
@@ -164,6 +163,8 @@ public abstract class GTGItems {
                 return TERA_ORB;
             case "z_ring":
                 return Z_RING;
+            case "dynamax_band":
+                return DYNAMAX_BAND;
         }
 
         switch (name) {
@@ -214,7 +215,7 @@ public abstract class GTGItems {
      * Maps Flourish item names to showdown names
      * Applies GTG naming conventions
      */
-    private static final Set<String> NULLABLE = Set.of("mega_keystone", "tera_orb", "z_ring");
+    private static final Set<String> NULLABLE = Set.of("mega_keystone", "tera_orb", "z_ring", "dynamax_band");
 
     private static final Map<String, String> REMAP = Map.of(
             "adamantorb", "adamantcrystal",
@@ -371,6 +372,22 @@ public abstract class GTGItems {
     public static final NSolarizerItem N_SOLARIZER = register("n_solarizer", NSolarizerItem::new);
     public static final ZygardeCubeItem ZYGARDE_CUBE = register("zygarde_cube", ZygardeCubeItem::new);
 
+    // Oricorio Nectars
+    public static final OricorioNectarItem PINK_NECTAR = register("pinknectar", (settings, item, modelData) -> new OricorioNectarItem(settings, item, modelData, "pau"));
+    public static final OricorioNectarItem RED_NECTAR = register("rednectar", (settings, item, modelData) -> new OricorioNectarItem(settings, item, modelData, "baile"));
+    public static final OricorioNectarItem YELLOW_NECTAR = register("yellownectar", (settings, item, modelData) -> new OricorioNectarItem(settings, item, modelData, "pompom"));
+    public static final OricorioNectarItem PURPLE_NECTAR = register("purplenectar", (settings, item, modelData) -> new OricorioNectarItem(settings, item, modelData, "sensu"));
+
+    // Rotom Appliances
+    public static final RotomApplianceItem LAWN_MOWER = register("lawn_mower", (settings, item, modelData) -> new RotomApplianceItem(settings, item, modelData, "rotom_mow"));
+    public static final RotomApplianceItem MICROWAVE_OVEN_HEAT = register("microwave_oven_heat", (settings, item, modelData) -> new RotomApplianceItem(settings, item, modelData, "rotom_heat"));
+    public static final RotomApplianceItem MICROWAVE_OVEN_WASH = register("microwave_oven_wash", (settings, item, modelData) -> new RotomApplianceItem(settings, item, modelData, "rotom_wash"));
+    public static final RotomApplianceItem REFRIGERATOR = register("refrigerator", (settings, item, modelData) -> new RotomApplianceItem(settings, item, modelData, "rotom_frost"));
+    public static final RotomApplianceItem ELECTRIC_FAN = register("electric_fan", (settings, item, modelData) -> new RotomApplianceItem(settings, item, modelData, "rotom_fan"));
+
+    // Greninja Battle Bond (Showdown item)
+    public static final PolymerHeldItem BATTLE_BOND_PATCH = registerShowdownItem("battlebondpatch");
+
     // Form Change Held Items
     public static final GenericFormChangeHeldItem ADAMANT_CRYSTAL = registerFormChangeChoice("adamantcrystal", "dialga", "orb_forme", "origin", "altered", 1);
     public static final GenericFormChangeHeldItem LUSTROUS_GLOBE = registerFormChangeChoice("lustrousglobe", "palkia", "orb_forme", "origin", "altered", 1);
@@ -434,6 +451,30 @@ public abstract class GTGItems {
     // Data-Driven Items
     public static final DataDrivenFusionItem DATA_DRIVEN_FUSION = register("data_driven_fusion", DataDrivenFusionItem::new);
     public static final DataDrivenToggleItem DATA_DRIVEN_TOGGLE = register("data_driven_toggle", DataDrivenToggleItem::new);
+
+    // Stat-Modifying Items (mapped to Showdown IDs)
+    public static final PolymerHeldItem ROSE_INCENSE = registerShowdownItem("roseincense");
+    public static final PolymerHeldItem LEEK = registerShowdownItem("leek");
+    public static final PolymerHeldItem LAX_INCENSE = registerShowdownItem("laxincense");
+    public static final PolymerHeldItem ROCK_INCENSE = registerShowdownItem("rockincense");
+    public static final PolymerHeldItem ODD_INCENSE = registerShowdownItem("oddincense");
+    public static final PolymerHeldItem DEEP_SEA_TOOTH = registerShowdownItem("deepseatooth");
+    public static final PolymerHeldItem THICK_CLUB = registerShowdownItem("thickclub");
+    public static final PolymerHeldItem LUCKY_PUNCH = registerShowdownItem("luckypunch");
+    public static final PolymerHeldItem LUMINOUS_MOSS = registerShowdownItem("luminousmoss");
+    public static final PolymerHeldItem SNOWBALL = registerShowdownItem("snowball");
+    public static final PolymerHeldItem DEEP_SEA_SCALE = registerShowdownItem("deepseascale");
+    public static final PolymerHeldItem GRIP_CLAW = registerShowdownItem("gripclaw");
+    public static final PolymerHeldItem MACHO_BRACE = registerShowdownItem("machobrace");
+    public static final PolymerHeldItem CLEAR_AMULET = registerShowdownItem("clearamulet");
+    public static final PolymerHeldItem FULL_INCENSE = registerShowdownItem("fullincense");
+    public static final PolymerHeldItem BOOSTER_ENERGY = registerShowdownItem("boosterenergy");
+    public static final PolymerHeldItem LAGGING_TAIL = registerShowdownItem("laggingtail");
+
+    // Bottle Caps (Showdown items)
+    public static final PolymerHeldItem BRONZE_BOTTLE_CAP = registerShowdownItem("bronzebottlecap");
+    public static final PolymerHeldItem SILVER_BOTTLE_CAP = registerShowdownItem("silverbottlecap");
+    public static final PolymerHeldItem GOLD_BOTTLE_CAP = registerShowdownItem("goldbottlecap");
 
     private static MegaStoneItem registerMegaStone(String name, String species, String megaAspect) {
         return registerShowdownItem(

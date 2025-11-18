@@ -188,6 +188,46 @@ public abstract class GTGItemGroup {
             entries.add(GTGItems.WELLSPRING_MASK);
             entries.add(GTGItems.HEARTHFLAME_MASK);
             entries.add(GTGItems.CORNERSTONE_MASK);
+
+            // Oricorio Nectars
+            entries.add(GTGItems.PINK_NECTAR);
+            entries.add(GTGItems.RED_NECTAR);
+            entries.add(GTGItems.YELLOW_NECTAR);
+            entries.add(GTGItems.PURPLE_NECTAR);
+
+            // Rotom Appliances
+            entries.add(GTGItems.LAWN_MOWER);
+            entries.add(GTGItems.MICROWAVE_OVEN_HEAT);
+            entries.add(GTGItems.MICROWAVE_OVEN_WASH);
+            entries.add(GTGItems.REFRIGERATOR);
+            entries.add(GTGItems.ELECTRIC_FAN);
+
+            // Battle Bond
+            entries.add(GTGItems.BATTLE_BOND_PATCH);
+
+            // Stat-Modifying Items
+            entries.add(GTGItems.ROSE_INCENSE);
+            entries.add(GTGItems.LEEK);
+            entries.add(GTGItems.LAX_INCENSE);
+            entries.add(GTGItems.ROCK_INCENSE);
+            entries.add(GTGItems.ODD_INCENSE);
+            entries.add(GTGItems.DEEP_SEA_TOOTH);
+            entries.add(GTGItems.THICK_CLUB);
+            entries.add(GTGItems.LUCKY_PUNCH);
+            entries.add(GTGItems.LUMINOUS_MOSS);
+            entries.add(GTGItems.SNOWBALL);
+            entries.add(GTGItems.DEEP_SEA_SCALE);
+            entries.add(GTGItems.GRIP_CLAW);
+            entries.add(GTGItems.MACHO_BRACE);
+            entries.add(GTGItems.CLEAR_AMULET);
+            entries.add(GTGItems.FULL_INCENSE);
+            entries.add(GTGItems.BOOSTER_ENERGY);
+            entries.add(GTGItems.LAGGING_TAIL);
+
+            // Bottle Caps
+            entries.add(GTGItems.BRONZE_BOTTLE_CAP);
+            entries.add(GTGItems.SILVER_BOTTLE_CAP);
+            entries.add(GTGItems.GOLD_BOTTLE_CAP);
         })
         .build();
 
